@@ -1,0 +1,49 @@
+name: Build Hashcat (Windows 64-bit)
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref }}
+          repository: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: mingw-w64-x86_64-toolchain mingw-w64-x86_64-opencl-headers mingw-w64-x86_64-libiconv make git
+      - name: Prepare libiconv
+        shell: msys2 {0}
+        run: |
+          mkdir -p /opt/win-iconv-64/lib
+          ln -s /mingw64/lib/libiconv.a /opt/win-iconv-64/lib/libiconv.a
+      - name: Patch types.h
+        shell: msys2 {0}
+        run: |
+          sed -i 's/typedef struct _stat64 hc_stat_t;/typedef struct stat64 hc_stat_t;/' include/types.h
+      - name: Build
+        shell: msys2 {0}
+        run: |
+          export CFLAGS="-Wno-error -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-incompatible-pointer-types -Wno-stringop-truncation -Wno-unused-but-set-variable"
+          make win64
+      - name: List files
+        shell: msys2 {0}
+        run: |
+          ls -la *.exe || echo "No exe files found"
+          find . -name "*.exe" -type f || echo "No exe files"
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hashcat-windows-x64
+          path: hashcat*.exe
+          if-no-files-found: error
