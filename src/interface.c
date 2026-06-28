@@ -14608,6 +14608,10 @@ int ps3_nid_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
 int ps4_nid_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig) 
 {
+
+  input_buf[input_len] = 0;
+  printf("ps4_nid_parse_hash:%s", input_buf);
+
   if ((input_len < DISPLAY_LEN_MIN_16111) || (input_len > DISPLAY_LEN_MAX_16111)) return (PARSER_GLOBAL_LENGTH);
 
   u32 *digest = (u32 *) hash_buf->digest;
